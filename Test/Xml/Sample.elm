@@ -1,9 +1,9 @@
 module Test.Xml.Sample exposing (..)
 
 
-sample1: String
+sample1 : String
 sample1 =
-  """<?xml version="1.0"?>
+    """<?xml version="1.0"?>
 <catalog>
    <book id="bk101">
       <author>Gambardella, Matthew</author>
@@ -125,16 +125,17 @@ sample1 =
 </catalog>
   """
 
-sample2: String
+
+sample2 : String
 sample2 =
-  """
+    """
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <error id="">
   <code>001</code>
   <message>
     <![CDATA[
       Invalid XML:
-      - decimal value (2,010,000,000,000) is greater than maxInclusive facet (999,999,999) for type of valor element in DadosPedido in namespace http://ecommerce.cbmp.com.br: \'<xml-fragment/>\'
+      - decimal value (2,010,000,000,000) is greater than maxInclusive facet (999,999,999) for type of valor element in DadosPedido in namespace http://ecommerce.cbmp.com.br: '<xml-fragment/>'
     ]]>
   </message>
 </error>

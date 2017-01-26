@@ -7,4 +7,4 @@ import Xml.Parser exposing (parseXml)
 
 main : Html.Html msg
 main =
-  code [] [ text <| toString <| parseXml Xml.sample1 ]
+    code [] [ text <| toString <| parseXml Xml.sample1 ]

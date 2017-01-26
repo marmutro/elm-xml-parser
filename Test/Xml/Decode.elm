@@ -9,10 +9,10 @@ import Html exposing (pre, text)
 
 xml : List XmlAst
 xml =
-  parseXml Xml.sample1
-    |> Result.withDefault [ Comment "error" ]
+    parseXml Xml.sample1
+        |> Result.withDefault [ Comment "error" ]
 
 
 main : Html.Html msg
 main =
-  pre [] [ text (encode 4 (toJson xml)) ]
+    pre [] [ text (encode 4 (toJson xml)) ]
