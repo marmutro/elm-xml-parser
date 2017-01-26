@@ -9,9 +9,7 @@ which can be further transformed.
 
 import Combine exposing (..)
 import Combine.Char exposing (..)
-import Combine.Infix exposing (..)
 import String
-import Result as Result'
 
 
 type alias Name =
@@ -38,136 +36,136 @@ type XmlAst
   | CDATA String
 
 
-spaces : Parser (List Char)
+spaces : Parser s (List Char)
 spaces =
   many (space <|> newline <|> tab)
 
 
-letter : Parser Char
+letter : Parser s Char
 letter =
   upper <|> lower
 
 
-betweenBoth : Char -> Parser String
+betweenBoth : Char -> Parser s String
 betweenBoth ch =
   String.fromList
     <$> between
           (char ch)
           (char ch)
-          (many1 ((noneOf [ ch ])) `or` succeed [])
+          (many1 ((noneOf [ ch ])) <|> succeed [])
 
 
-betweenSingleQuotes : Parser String
+betweenSingleQuotes : Parser s String
 betweenSingleQuotes =
   betweenBoth '\''
 
 
-betweenDoubleQuotes : Parser String
+betweenDoubleQuotes : Parser s String
 betweenDoubleQuotes =
   betweenBoth '"'
 
 
-quotedString : Parser String
+quotedString : Parser s String
 quotedString =
   betweenSingleQuotes <|> betweenDoubleQuotes
 
 
-attributeName : Parser String
+attributeName : Parser s String
 attributeName =
   String.fromList
     <$> many1 (letter <|> digit <|> char '-' <|> char ':')
     <?> "Invalid Attribute name"
 
 
-tagName : Parser String
+tagName : Parser s String
 tagName =
   String.fromList
     <$> many (choice [ letter, digit, char '_', char ':' ])
     <?> "Invalid Tag name"
 
 
-keyValue : Parser ( String, String )
+keyValue : Parser s ( String, String )
 keyValue =
   (\key value -> ( key, value ))
     <$> (attributeName <* spaces <* char '=' <* spaces)
     <*> (quotedString <* spaces)
 
 
-openTag : Parser ( String, List ( String, String ) )
+openTag : Parser s ( String, List ( String, String ) )
 openTag =
   (\name attribs -> ( name, attribs ))
     <$> (char '<' *> tagName)
     <*> (spaces *> many keyValue <* char '>')
 
 
-closeTag : String -> Parser ()
+closeTag : String -> Parser s ()
 closeTag str =
   ()
     <$ (string "</" *> spaces *> string str *> spaces *> char '>')
     <?> ("Expected closing Tag for " ++ toString str)
 
 
-withExplicitCloseTag : Parser XmlAst
+withExplicitCloseTag : Parser s XmlAst
 withExplicitCloseTag =
   (\( name, attribs, xml ) -> Element name attribs xml)
-    <$> ((openTag <* spaces) `andThen` \( name, attribs ) -> (\xml -> ( name, attribs, xml )) <$> (many (innerXml <* spaces) <* closeTag name))
+    <$> ((openTag <* spaces) >>= \( name, attribs ) -> (\xml -> ( name, attribs, xml )) <$> (many (innerXml <* spaces) <* closeTag name))
 
 
-comment : Parser XmlAst
+comment : Parser s XmlAst
 comment =
   (String.fromList >> String.trim >> Comment)
     <$> (string "<!--" *> manyTill anyChar (string "-->"))
 
 
-cdata : Parser XmlAst
+cdata : Parser s XmlAst
 cdata =
   (String.fromList >> String.trim >> CDATA)
     <$> (string "<![CDATA[" *> manyTill anyChar (string "]]>"))
 
 
-withoutExplicitCloseTag : Parser XmlAst
+withoutExplicitCloseTag : Parser s XmlAst
 withoutExplicitCloseTag =
   (\name attribs -> Element name attribs [])
     <$> ((char '<' *> tagName <* spaces))
     <*> (many keyValue <* string "/>")
 
 
-parseBody : Parser XmlAst
+parseBody : Parser s XmlAst
 parseBody =
   (Body << String.trim << String.fromList) <$> (many1 (noneOf [ '<', '>' ]))
 
 
-xmlDeclaration : Parser ()
+xmlDeclaration : Parser s ()
 xmlDeclaration =
   () <$ (string "<?xml" *> Combine.while ((/=) '?') <* string "?>")
 
 
-xmlParser : Parser XmlAst
+xmlParser : Parser s XmlAst
 xmlParser =
-  rec (\() -> withExplicitCloseTag) <|> rec (\() -> withoutExplicitCloseTag)
+  lazy (\() -> withExplicitCloseTag) <|> lazy (\() -> withoutExplicitCloseTag)
 
 
-rootElements : Parser (List XmlAst)
+rootElements : Parser s (List XmlAst)
 rootElements =
   many1 (choice [ xmlParser, comment <* spaces ])
 
 
-innerXml : Parser XmlAst
+innerXml : Parser s XmlAst
 innerXml =
   comment <|> cdata <|> xmlParser <|> parseBody
 
 
-parser : Parser (List XmlAst)
+parser : Parser s (List XmlAst)
 parser =
   spaces *> maybe xmlDeclaration *> spaces *> rootElements <* spaces <* end
 
 
 {-| Trys to parse the input string as an AST -}
-parseXml : String -> Result'.Result (List String) (List XmlAst)
+parseXml : String -> Result (List String) (List XmlAst)
 parseXml str =
   case parse parser str of
-    ( Ok xml, ctx ) ->
-      Result'.Ok xml
+    Ok (_, _, xml ) ->
+      Ok xml
 
-    ( Err failure, _ ) ->
-      Result'.Err failure
+    Err (_, _, failure ) ->
+      Err failure
